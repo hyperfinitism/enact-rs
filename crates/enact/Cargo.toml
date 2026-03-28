@@ -1,0 +1,14 @@
+[package]
+name = "enact"
+description = "GitHub Actions runner emulator CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+flexi_logger.workspace = true
+log.workspace = true
+enact-core = { path = "../enact-core" }

@@ -1,0 +1,48 @@
+# Phase 1: Builder
+FROM docker.io/library/rust:1.94.1-slim@sha256:1d0000a49fb62f4fde24455f49d59c6c088af46202d65d8f455b722f7263e8f8 AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends git
+
+RUN git clone https://github.com/hyperfinitism/enact-rs
+RUN cd enact-rs \
+    && cargo build --release --bin enact \
+    && strip /build/enact-rs/target/release/enact
+
+# Phase 2: Runtime
+FROM docker.io/library/ubuntu:noble-20260217@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bash \
+        build-essential \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        nodejs \
+        python3 \
+        tar \
+        zip \
+        unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+COPY --from=builder /build/enact-rs/target/release/enact /usr/local/bin/enact
+
+# Default workspace and temp directories
+ENV RUNNER_TEMP=/tmp/enact/runner
+ENV RUNNER_TOOL_CACHE=/tmp/enact/tool-cache
+
+RUN mkdir -p /workspace /mnt/repo "$RUNNER_TEMP" "$RUNNER_TOOL_CACHE"
+
+WORKDIR /workspace
+
+COPY containers/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
