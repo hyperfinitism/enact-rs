@@ -30,11 +30,9 @@ Because running arbitrary workflow steps directly on your host can modify system
 
 ### Run inside a container (recommended)
 
-> [!INFO]
-> Running inside a container isolates workflow side effects from your host system.
-> Your repository is mounted **read-only** at `/mnt/repo` inside the container.
-> On startup the entrypoint copies it to a writable `/workspace` directory.
-> `enact` can create temporary files without ever modifying your local checkout.
+> [!NOTE]
+> Running inside a container isolates any side effects from your host system.
+> Your repository should be mounted **read-only** at `/mnt/repo`; on startup, the entrypoint copies it to a writable `/workspace` directory so that `enact` can create temporary files without ever modifying your local checkout.
 
 ```bash
 # Build a container image
