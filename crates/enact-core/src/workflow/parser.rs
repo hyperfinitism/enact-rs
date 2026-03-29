@@ -15,7 +15,7 @@ pub fn parse_workflow_file(path: &Path) -> Result<Workflow, Error> {
 
 /// Parse a workflow YAML string.
 pub fn parse_workflow_string(yaml: &str, path: &Path) -> Result<Workflow, Error> {
-    let workflow: Workflow = serde_yml::from_str(yaml).map_err(|e| Error::WorkflowParse {
+    let workflow: Workflow = yaml_serde::from_str(yaml).map_err(|e| Error::WorkflowParse {
         file: path.to_path_buf(),
         message: format!("YAML parse error: {e}"),
     })?;

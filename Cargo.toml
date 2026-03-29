@@ -16,7 +16,7 @@ glob = "0.3.0"
 log = "0.4.29"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-serde_yml = "0.0.12"
 sha2 = "0.11.0"
 tempfile = "3.27.0" # dev-dependencies
 thiserror = "2.0.18"
+yaml_serde = "0.10.4"

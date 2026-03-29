@@ -209,7 +209,13 @@ pub fn read_action_yml(action_dir: &Path) -> Option<ActionYml> {
         return None;
     };
 
-    serde_yml::from_str(&content).ok()
+    match yaml_serde::from_str(&content) {
+        Ok(action) => Some(action),
+        Err(e) => {
+            log::warn!("Failed to parse action YAML in {:?}: {}", action_dir, e);
+            None
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
