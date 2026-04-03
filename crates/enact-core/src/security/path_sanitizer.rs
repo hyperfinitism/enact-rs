@@ -175,13 +175,16 @@ mod tests {
     #[test]
     fn test_reject_absolute_path() {
         let base = Path::new("/tmp");
-        let err = safe_resolve(base, "/etc/passwd").unwrap_err();
+        #[cfg(unix)]
+        let abs = "/etc/passwd";
+        #[cfg(windows)]
+        let abs = "C:\\Windows\\System32\\cmd.exe";
+        let err = safe_resolve(base, abs).unwrap_err();
         assert!(err.to_string().contains("path traversal"));
     }
 
     #[test]
     fn test_existing_path() {
-        // /tmp exists, so canonicalize should work
         let base = Path::new("/tmp");
         let result = safe_resolve(base, "nonexistent_safe_file.txt").unwrap();
         assert!(result.to_string_lossy().contains("nonexistent_safe_file"));
@@ -189,23 +192,25 @@ mod tests {
 
     #[test]
     fn test_symlink_detection() {
-        // Create a symlink that escapes the jail
         let jail = tempfile::tempdir().unwrap();
         let escape_target = tempfile::tempdir().unwrap();
         let link_path = jail.path().join("escape");
         #[cfg(unix)]
         {
             std::os::unix::fs::symlink(escape_target.path(), &link_path).unwrap();
-            // The symlink "escape" points outside the jail, so "escape/secret.txt"
-            // must be rejected even though the full path doesn't exist on disk.
             let result = safe_resolve(jail.path(), "escape/secret.txt");
             assert!(result.is_err(), "symlink-based escape should be rejected");
         }
         #[cfg(windows)]
-        {
-            std::os::windows::fs::symlink_dir(escape_target.path(), &link_path).unwrap();
-            let result = safe_resolve(jail.path(), "escape/secret.txt");
-            assert!(result.is_err(), "symlink-based escape should be rejected");
+        match std::os::windows::fs::symlink_dir(escape_target.path(), &link_path) {
+            Ok(()) => {
+                let result = safe_resolve(jail.path(), "escape\\secret.txt");
+                assert!(result.is_err(), "symlink-based escape should be rejected");
+            }
+            Err(e) if e.raw_os_error() == Some(1314) => {
+                eprintln!("skipping symlink test: insufficient privileges");
+            }
+            Err(e) => panic!("unexpected error creating symlink: {e}"),
         }
     }
 
@@ -222,7 +227,11 @@ mod tests {
     #[test]
     fn test_safe_resolve_within_rejects_absolute_outside_roots() {
         let root = tempfile::tempdir().unwrap();
-        let result = safe_resolve_within(root.path(), "/etc/passwd", &[root.path()]);
+        #[cfg(unix)]
+        let abs = "/etc/passwd";
+        #[cfg(windows)]
+        let abs = "C:\\Windows\\System32\\cmd.exe";
+        let result = safe_resolve_within(root.path(), abs, &[root.path()]);
         assert!(result.is_err());
     }
 }
